@@ -14,13 +14,23 @@ virtualenv ~/venv
 
 ## WSL - To get terminator to open "natively"
 
-Create a vbs script like below
+1) Install [https://sourceforge.net/projects/vcxsrv](VcXsrv) for X11 support
+
+
+2) Make a new shortcut with the Target set to:
+```
+"C:\Program Files\VcXsrv\vcxsrv.exe" :0 -ac -terminate -lesspointer -multiwindow -clipboard -wgl -dpi auto 
+```
+
+3) Open `run.exe` and type `shell:startup`. Put the shortcut here.
+
+4) Create a vbs script like below
 ```vbs
 args = "-c" & " -l " & """cd ~; env DISPLAY=:0.0 terminator"""
 WScript.CreateObject("Shell.Application").ShellExecute "bash", args, "", "open", 0
 ```
 
-Create a shortcut with Target set to the script
+5) Create a shortcut with Target set to the script
 ```
 C:\Windows\System32\wscript.exe D:\Documents\Scripts\Terminator.vbs
 ```
