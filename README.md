@@ -14,7 +14,7 @@ virtualenv ~/venv
 
 ## WSL - To get terminator to open "natively"
 
-1) Install [https://sourceforge.net/projects/vcxsrv](VcXsrv) for X11 support
+1) Install [VcXsrv](https://sourceforge.net/projects/vcxsrv) for X11 support
 
 
 2) Make a new shortcut with the Target set to:
