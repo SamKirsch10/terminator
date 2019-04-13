@@ -1,4 +1,5 @@
 # Setup
+```bash
 sudo apt install software-properties-common
 sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt update
@@ -7,4 +8,6 @@ curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
 sudo python3 get-pip.py
 pip install --user pipenv virtualenv
 virtualenv ~/venv
+```
+
 
