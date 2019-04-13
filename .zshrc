@@ -24,10 +24,10 @@ ZSH_THEME="bullet-train"
 # HYPHEN_INSENSITIVE="true"
 
 # Uncomment the following line to disable bi-weekly auto-update checks.
-# DISABLE_AUTO_UPDATE="true"
+#DISABLE_AUTO_UPDATE="true"
 
 # Uncomment the following line to change how often to auto-update (in days).
-# export UPDATE_ZSH_DAYS=13
+export UPDATE_ZSH_DAYS=60
 
 # Uncomment the following line to disable colors in ls.
 # DISABLE_LS_COLORS="true"
