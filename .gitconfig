@@ -2,8 +2,10 @@
 	last = log -1 HEAD
 	a = add
 	c = commit -m
-	s = status
+	s = status -s
 	
 [user]
 	email = samkirsch@gmail.com
 	name = Kirsch, Sam
+[push]
+	default = simple
