@@ -2,24 +2,29 @@
 
 
 killorphaned() {
-	if [[ ! -z $SSH_AGENT_PID ]]; then
-		kill $SSH_AGENT_PID
-	fi
-	## Can add more background shit later
+
+	# Takes in argument:
+	# $1 = PID of parent shell
+	# $2 = SSH_AGENT_PID
+
+	echo $1 $2 > /tmp/samtest
+
+	while :
+	do
+		# if our terminal/shell is now closed...
+		ps aux | grep -v grep | grep -q "$1"
+		exited=$?
+		if [[ "$exited" != "0" ]]; then
+			kill $2
+			exit 0
+		fi
+
+		sleep 5
+	done
+	
 }
 
 
 # Let's get our shell PID so we know if it ever closes
 SHELL_PID=$(echo $PPID)
-
-while :
-do
-	# if our terminal/shell is now closed...
-	exited=$(ps aux | grep $SHELL_PID | grep -vq grep)
-	if [[ ! -z $exited ]]; then
-		killorphaned
-		break
-	fi
-
-	sleep 10
-done
+killorphaned $SHELL_PID $SSH_AGENT_PID
