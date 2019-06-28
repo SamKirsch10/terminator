@@ -93,3 +93,9 @@ source $ZSH/oh-my-zsh.sh
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 alias venv="source ~/venv/bin/activate"
 alias python="python3"
+
+
+eval `ssh-agent` > /dev/null 2>&1
+ssh-add ~/.ssh/someKEY  > /dev/null 2>&1
+
+nohup ~/killstuff.sh > /dev/null 2>&1 &
