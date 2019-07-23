@@ -36,3 +36,25 @@ C:\Windows\System32\wscript.exe D:\Documents\Scripts\Terminator.vbs
 ```
 
 You can change the shortcut's icon with this one in this repo
+
+## Install The Pretty Stuff
+1) Install [Powerline fonts](https://github.com/powerline/fonts)
+ - Run the install.ps1
+ - Also run the install.sh inside WSL
+2) Edit the ubuntu fonts xml file so we can connect WSL to these shiny fonts. 
+```bash
+vi /etc/fonts/local.conf
+```
+```
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+<fontconfig>
+    <dir>/mnt/c/Windows/Fonts</dir>
+</fontconfig>
+```
+2) Install ZSH and set as default
+```bash
+sudo apt install zsh
+wget https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -O - | zsh
+```
+3) ZSH will ask you some questions... we're doing nothing cause we'll use the files here. download / override the zsh files with the ones here
