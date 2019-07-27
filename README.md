@@ -13,6 +13,7 @@ virtualenv ~/venv
 
 
 ## WSL - To get terminator to open "natively"
+![terminator](https://raw.githubusercontent.com/SamKirsch10/terminator/master/assets/window.png)
 
 1) Install [VcXsrv](https://sourceforge.net/projects/vcxsrv) for X11 support
 
