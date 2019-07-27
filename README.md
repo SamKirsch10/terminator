@@ -1,9 +1,9 @@
 # Setup
 ```bash
-sudo apt install software-properties-common
+sudo apt install -y software-properties-common
 sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt update
-sudo apt install python3.7 terminator dbus-x11
+sudo apt install -y python3.7 terminator dbus-x11
 curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
 sudo python3 get-pip.py
 pip install --user pipenv virtualenv
@@ -40,18 +40,6 @@ You can change the shortcut's icon with this one in this repo
 ## Install The Pretty Stuff
 1) Install [Powerline fonts](https://github.com/powerline/fonts)
  - Run the install.ps1
- - Also run the install.sh inside WSL
-2) Edit the ubuntu fonts xml file so we can connect WSL to these shiny fonts. 
-```bash
-vi /etc/fonts/local.conf
-```
-```
-<?xml version="1.0"?>
-<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
-<fontconfig>
-    <dir>/mnt/c/Windows/Fonts</dir>
-</fontconfig>
-```
 2) Install ZSH and set as default
 ```bash
 sudo apt install zsh
