@@ -33,6 +33,7 @@ alias python="python3"
 
 # Custom Functions
 function subl() {
+	# This func will open Window's side Sublime and route it to the linux file provided
 	/mnt/c/Program\ Files/Sublime\ Text\ 3/subl.exe "C:/Users/Sam Kirsch/AppData/Local/Packages/CanonicalGroupLimited.UbuntuonWindows_79rhkp1fndgsc/LocalState/rootfs$(pwd)/$1"
 
 }
