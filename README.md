@@ -46,3 +46,13 @@ sudo apt install zsh
 wget https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -O - | zsh
 ```
 3) ZSH will ask you some questions... we're doing nothing cause we'll use the files here. download / override the zsh files with the ones here
+4) Edit the ubuntu fonts xml file so we can connect WSL to these shiny fonts. 
+```bash
+vi /etc/fonts/local.conf
+---------
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+<fontconfig>
+    <dir>/mnt/c/Windows/Fonts</dir>
+</fontconfig>
+```
