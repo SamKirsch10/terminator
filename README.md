@@ -37,6 +37,7 @@ C:\Windows\System32\wscript.exe D:\Documents\Scripts\Terminator.vbs
 ```
 
 You can change the shortcut's icon with this one in this repo
+![terminator](https://raw.githubusercontent.com/SamKirsch10/terminator/master/assets/terminator.ico)
 
 ## Install The Pretty Stuff
 1) Install [Powerline fonts](https://github.com/powerline/fonts)
