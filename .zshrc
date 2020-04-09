@@ -20,9 +20,10 @@ plugins=(git colored-man-pages colorize pip python brew osx zsh-syntax-highlight
 alias venv="source ~/venv/bin/activate"
 alias python="python3"
 alias subl="/Applications/Sublime\ Text.app/Contents/SharedSupport/bin/subl"
+alias k8s-switch="~/repos/terminator/scripts/kubeSwitch.sh"
 
 # eval `ssh-agent` > /dev/null 2>&1
 # ssh-add ~/.ssh/id_rsa  > /dev/null 2>&1
 
 
-nohup /Users/sam/repos/terminator/killstuff.sh > /dev/null 2>&1 &
+nohup ~/repos/terminator/scripts/killstuff.sh > /dev/null 2>&1 &
