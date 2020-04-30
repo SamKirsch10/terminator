@@ -46,11 +46,12 @@ alias passhash="openssl passwd -1"
 alias socksProxy="/home/skirsch/repos/samkirsch10-terminator/scripts/socksProxy.sh"
 alias dfimage="docker run -v /var/run/docker.sock:/var/run/docker.sock --rm dduvnjak/dockerfile-from-image"
 eval $(thefuck --alias)
+alias retry-ssh="~/repos/samkirsch10-terminator/scripts/retry-ssh.sh"
 
 ## KUBERNETES STUFFs
 alias getNodePorts="kubectl get svc --all-namespaces -o go-template='{{range .items}}{{range.spec.ports}}{{if .nodePort}}{{.nodePort}} - {{.name}}{{\"\n\"}}{{end}}{{end}}{{end}}' "
 alias show-contexts="kubectl config get-contexts"
-alias k8s-switch=/home/skirsch/repos/samkirsch10-terminator/scripts/kubeSetContext.sh
+alias k8s-switch=/home/skirsch/repos/samkirsch10-terminator/scripts/kubeSwitch.sh
 
 ##AWS Stuff
 alias aws-profile="/home/skirsch/repos/samkirsch10-terminator/scripts/awsSetProfile.sh"
