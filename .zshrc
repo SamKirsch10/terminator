@@ -47,6 +47,7 @@ alias socksProxy="/home/skirsch/repos/samkirsch10-terminator/scripts/socksProxy.
 alias dfimage="docker run -v /var/run/docker.sock:/var/run/docker.sock --rm dduvnjak/dockerfile-from-image"
 eval $(thefuck --alias)
 alias retry-ssh="~/repos/samkirsch10-terminator/scripts/retry-ssh.sh"
+alias remove-branches="git branch --merged | grep -v master | xargs git branch -d"
 
 ## KUBERNETES STUFFs
 alias getNodePorts="kubectl get svc --all-namespaces -o go-template='{{range .items}}{{range.spec.ports}}{{if .nodePort}}{{.nodePort}} - {{.name}}{{\"\n\"}}{{end}}{{end}}{{end}}' "
