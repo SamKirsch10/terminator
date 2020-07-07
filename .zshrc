@@ -39,14 +39,18 @@ export ANSIBLE_VAULT_PASSWORD_FILE=/home/skirsch/v
 alias venv="source ~/venv/bin/activate"
 alias venv3="source ~/venv3/bin/activate"
 
-alias master="git checkout master && git pull"
 alias rm_windows_line_ends="sed -i -e 's/\r$//'"
 alias tempdir="cd $(mktemp -d)"
 alias passhash="openssl passwd -1"
-alias socksProxy="/home/skirsch/repos/samkirsch10-terminator/scripts/socksProxy.sh"
+alias socksProxy="~/repos/samkirsch10-terminator/scripts/socksProxy.sh"
 alias dfimage="docker run -v /var/run/docker.sock:/var/run/docker.sock --rm dduvnjak/dockerfile-from-image"
-eval $(thefuck --alias)
 alias retry-ssh="~/repos/samkirsch10-terminator/scripts/retry-ssh.sh"
+if [[ ! -z $(which thefuck 2>/dev/null) ]]; then
+    eval $(thefuck --alias)
+fi
+
+# git stuff
+alias master="git checkout master && git pull"
 alias remove-branches="git branch --merged | grep -v master | xargs git branch -d"
 
 ## KUBERNETES STUFFs
@@ -55,11 +59,11 @@ alias show-contexts="kubectl config get-contexts"
 alias k8s-switch=/home/skirsch/repos/samkirsch10-terminator/scripts/kubeSwitch.sh
 
 ##AWS Stuff
-alias aws-profile="/home/skirsch/repos/samkirsch10-terminator/scripts/awsSetProfile.sh"
+alias aws-profile="~/repos/samkirsch10-terminator/scripts/awsSetProfile.sh"
 
 
 
 eval `ssh-agent` > /dev/null 2>&1
 ssh-add ~/.ssh/skirsch_1537968652  > /dev/null 2>&1
 
-nohup ~/killstuff.sh > /dev/null 2>&1 &
+nohup ~/repos/samkirsch10-terminator/scripts/killstuff.sh > /dev/null 2>&1 &
