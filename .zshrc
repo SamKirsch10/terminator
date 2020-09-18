@@ -26,7 +26,6 @@ plugins=(
   git
   colored-man-pages
   colorize
-  autojump
   docker
   gitfast
 )
