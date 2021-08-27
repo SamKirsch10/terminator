@@ -35,6 +35,8 @@ source $ZSH/oh-my-zsh.sh
 
 export ANSIBLE_VAULT_PASSWORD_FILE=/home/skirsch/v
 
+bash ~/repos/samkirsch10-terminator/scripts/keyExpire.sh
+
 # alias venv="source ~/venv/bin/activate"
 alias venv="source ~/venv/bin/activate"
 alias venv3="source ~/venv3/bin/activate"
@@ -63,5 +65,6 @@ alias k8s-switch=/home/skirsch/repos/samkirsch10-terminator/scripts/kubeSwitch.s
 
 ##AWS Stuff
 alias aws-profile="~/repos/samkirsch10-terminator/scripts/awsSetProfile.sh"
+
 
 
