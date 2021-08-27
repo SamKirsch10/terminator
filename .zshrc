@@ -1,5 +1,5 @@
 # If you come from bash you might have to change your $PATH.
-export PATH=$HOME/go/bin:$HOME/bin:/usr/local/bin:/usr/local/go/bin:$PATH
+export PATH=$HOME/.local/bin/:$HOME/go/bin:$HOME/bin:/usr/local/bin:/usr/local/go/bin:$PATH
 
 # Apache Maven Environment Variables
 # MAVEN_HOME for Maven 1 - M2_HOME for Maven 2
@@ -7,7 +7,9 @@ export M2_HOME=/usr/local/src/apache-maven
 export PATH=${M2_HOME}/bin:${PATH}
 
 # Path to your oh-my-zsh installation.
-  export ZSH="/home/skirsch/.oh-my-zsh"
+export ZSH="/home/skirsch/.oh-my-zsh"
+
+export GOROOT=/usr/local/go
 
 # Set name of the theme to load. Optionally, if you set this to "random"
 # it'll load a random theme each time that oh-my-zsh is loaded.
@@ -25,7 +27,6 @@ DISABLE_AUTO_UPDATE="true"
 plugins=(
   git
   colored-man-pages
-  colorize
   docker
   gitfast
 )
@@ -44,9 +45,12 @@ alias passhash="openssl passwd -1"
 alias socksProxy="~/repos/samkirsch10-terminator/scripts/socksProxy.sh"
 alias dfimage="docker run -v /var/run/docker.sock:/var/run/docker.sock --rm dduvnjak/dockerfile-from-image"
 alias retry-ssh="~/repos/samkirsch10-terminator/scripts/retry-ssh.sh"
-if [[ ! -z $(which thefuck 2>/dev/null) ]]; then
+if command -v fuck &> /dev/null; then
     eval $(thefuck --alias)
 fi
+alias pssh="/home/skirsch/go/bin/orgalorg -y"
+alias ogrep="~/repos/samkirsch10-terminator/scripts/ogrep.sh"
+alias pfx-to-pem="~/repos/samkirsch10-terminator/scripts/pfx-to-pem.sh"
 
 # git stuff
 alias master="git checkout master && git pull"
@@ -61,8 +65,3 @@ alias k8s-switch=/home/skirsch/repos/samkirsch10-terminator/scripts/kubeSwitch.s
 alias aws-profile="~/repos/samkirsch10-terminator/scripts/awsSetProfile.sh"
 
 
-
-eval `ssh-agent` > /dev/null 2>&1
-ssh-add ~/.ssh/skirsch_1537968652  > /dev/null 2>&1
-
-nohup ~/repos/samkirsch10-terminator/scripts/killstuff.sh > /dev/null 2>&1 &

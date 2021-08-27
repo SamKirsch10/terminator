@@ -1,0 +1,40 @@
+#! /bin/sh
+
+### BEGIN INIT INFO
+# Provides:		sshd
+# Required-Start:	$remote_fs $syslog
+# Required-Stop:	$remote_fs $syslog
+# Default-Start:	2 3 4 5
+# Default-Stop:		
+# Short-Description:	Directory syncer
+### END INIT INFO
+
+set -e
+PID_FILE=/run/dir-sync.pid
+
+run() {
+    start-stop-daemon --start --make-pidfile --pidfile $PID_FILE --background  \
+        --startas /bin/bash -- -c "/home/skirsch/repos/samkirsch10-terminator/scripts/dir-sync/dir-sync.sh /mnt/c/Users/skirsch/repos/ /home/skirsch/ >> /var/log/dir-sync.log 2>&1"
+}
+
+stop() {
+    start-stop-daemon --stop --quiet --pidfile $PID_FILE
+}
+
+case "$1" in
+  start)
+	run
+	;;
+  stop)
+	stop
+	;;
+  reload|force-reload|restart)
+	stop
+    run
+	;;
+  *)
+	echo "Usage: /etc/init.d/dir-sync {start|stop|reload|force-reload|restart}" || true
+	exit 1
+esac
+
+exit 0 

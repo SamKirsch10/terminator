@@ -1,0 +1,13 @@
+[Unit]
+Description=Windows Repo Sync
+After=network.target
+
+[Service]
+Type=simple
+User=skirsch
+WorkingDirectory=/home/skirsch
+ExecStart=/home/skirsch/repos/samkirsch10-terminator/scripts/dir-sync.sh /mnt/c/Users/skirsch/repos/ /home/skirsch/
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
