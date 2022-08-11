@@ -30,6 +30,8 @@ if [ ! -n "${BULLETTRAIN_PROMPT_ORDER+1}" ]; then
     nvm
     aws
     go
+    gcloud
+    kctx
     rust
     elixir
     git
@@ -87,7 +89,7 @@ fi
 
 # VIRTUALENV
 if [ ! -n "${BULLETTRAIN_VIRTUALENV_BG+1}" ]; then
-  BULLETTRAIN_VIRTUALENV_BG=yellow
+  BULLETTRAIN_VIRTUALENV_BG=green
 fi
 if [ ! -n "${BULLETTRAIN_VIRTUALENV_FG+1}" ]; then
   BULLETTRAIN_VIRTUALENV_FG=white
@@ -156,7 +158,7 @@ if [ ! -n "${BULLETTRAIN_KCTX_BG+1}" ]; then
   BULLETTRAIN_KCTX_BG=yellow
 fi
 if [ ! -n "${BULLETTRAIN_KCTX_FG+1}" ]; then
-  BULLETTRAIN_KCTX_FG=white
+  BULLETTRAIN_KCTX_FG=black
 fi
 if [ ! -n "${BULLETTRAIN_KCTX_PREFIX+1}" ]; then
   BULLETTRAIN_KCTX_PREFIX="⎈"
@@ -321,6 +323,9 @@ if [ ! -n "${BULLETTRAIN_EXEC_TIME_FG+1}" ]; then
   BULLETTRAIN_EXEC_TIME_FG=black
 fi
 
+# GCLOUD
+BULLETTRAIN_GCLOUD_BG=magenta
+BULLETTRAIN_GCLOUD_FG=white
 
 # ------------------------------------------------------------------------------
 # SEGMENT DRAWING
@@ -366,7 +371,8 @@ prompt_end() {
 # Context: user@hostname (who am I and where am I)
 context() {
   local user="$(whoami)"
-  [[ "$user" != "$BULLETTRAIN_CONTEXT_DEFAULT_USER" || -n "$BULLETTRAIN_IS_SSH_CLIENT" ]] && echo -n "${user}@$BULLETTRAIN_CONTEXT_HOSTNAME"
+  #[[ "$user" != "$BULLETTRAIN_CONTEXT_DEFAULT_USER" || -n "$BULLETTRAIN_IS_SSH_CLIENT" ]] && echo -n "${user}@$BULLETTRAIN_CONTEXT_HOSTNAME"
+  echo -n "${user}@"
 }
 
 prompt_context() {
@@ -539,6 +545,14 @@ prompt_go() {
   fi
 }
 
+#gcloud
+prompt_gcloud() {
+  if command -v which gcloud > /dev/null 2>&1; then
+    project_id=$(cat ~/.config/gcloud/configurations/config_default | grep project | awk '{print $NF}')
+    prompt_segment $BULLETTRAIN_GCLOUD_BG $BULLETTRAIN_GCLOUD_FG $BULLETTRAIN_AWS_PREFIX"  $project_id"
+  fi
+}
+
 # Rust
 prompt_rust() {
   if [[ (-f Cargo.toml) ]]; then
@@ -550,13 +564,11 @@ prompt_rust() {
 
 # Kubernetes Context
 prompt_kctx() {
-  if [[ ! -n $BULLETTRAIN_KCTX_KCONFIG ]]; then
-    return
-  fi
   if command -v kubectl > /dev/null 2>&1; then
-    if [[ -f $BULLETTRAIN_KCTX_KCONFIG ]]; then
-      prompt_segment $BULLETTRAIN_KCTX_BG $BULLETTRAIN_KCTX_FG $BULLETTRAIN_KCTX_PREFIX" $(cat $BULLETTRAIN_KCTX_KCONFIG|grep current-context| awk '{print $2}')"
-    fi  
+    gke_cluster=$(cat ~/.kube/config | grep current-context | awk '{print $2}')
+    split=(${gke_cluster//_/ })
+    realName=$(echo $split | awk '{print $NF}')
+    prompt_segment $BULLETTRAIN_KCTX_BG $BULLETTRAIN_KCTX_FG $BULLETTRAIN_KCTX_PREFIX" ${realName}"
   fi
 }
 
