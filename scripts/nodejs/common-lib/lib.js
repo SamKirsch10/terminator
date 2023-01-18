@@ -10,11 +10,13 @@ import _ from "lodash"
 var HOME = shell.env.HOME
 const raw_gcpConfig = shell.cat(`${HOME}/.config/gcloud/configurations/config_default`)
 const gcpConfig = ini.parse(raw_gcpConfig)
-const projectListFile = `${HOME}/.config/gcloud/cache/${gcpConfig.core.account}/projects_list`
+const gcpCacheDir = `${HOME}/.config/gcloud/cache/${gcpConfig.core.account}`
+const projectListFile = `${gcpCacheDir}/projects_list`
 
 function refreshProjectList() {
     console.log("Refreshing project list cache!")
-    shell.exec(`gcloud projects list | tail -n +2 | awk '{print $1}' | sort > ${projectListFile}`)
+    shell.mkdir('-p', gcpCacheDir)
+    shell.exec(`gcloud projects list | tail -n +2 | awk '{print $1}' | grep -v 'sys-' | sort > ${projectListFile}`)
 }
 
 function getProjectList() {
@@ -28,6 +30,7 @@ function getProjectList() {
 
 export default {
     gcpConfig: gcpConfig,
+    projectListFile: projectListFile,
     getProjectList: getProjectList(),
     searchProjects: function(answers, input) {
         var projectList = getProjectList()

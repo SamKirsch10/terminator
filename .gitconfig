@@ -9,11 +9,12 @@ diff = auto
     l     = log --graph --topo-order --abbrev-commit --date=short --decorate --all --boundary --pretty=format:'%Cgreen%ad %Cred%h%Creset -%C(yellow)%d%Creset %s %Cblue[%cn]%Creset %Cblue%G?%Creset'
     prune = remote prune origin
 
-[user]
-	email = SamKirsch10@users.noreply.github.com
-	name  = samkirsch10
 [push]
 	default = simple
+	autoSetupRemote = true
+[fetch]
+	prune = true
+
 [pager]
     branch = false
 
