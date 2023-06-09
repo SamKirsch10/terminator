@@ -41,8 +41,6 @@ source $ZSH/oh-my-zsh.sh
 
 # export ANSIBLE_VAULT_PASSWORD_FILE=/home/skirsch/v
 
-echo 'HISTTIMEFORMAT="%F %T "'
-
 export DOCKER_BUILDKIT=0
 # source ~/venv3/bin/activate
 
@@ -90,6 +88,7 @@ alias pssh="$HOME/go/bin/orgalorg -y"
 alias ogrep="~/src/terminator/scripts/ogrep.sh"
 alias pfx-to-pem="~/src/terminator/scripts/pfx-to-pem.sh"
 alias subl="/Applications/Sublime\ Text.app/Contents/SharedSupport/bin/subl"
+alias re-search="~/src/terminator/scripts/regex-search.py"
 dexec() {
   id=$(docker ps | tail -1 | awk '{print $1}')
   docker exec -it $id $1
@@ -98,6 +97,7 @@ dexec() {
 # git stuff
 # alias master="git checkout master && git pull"
 alias remove-branches="git branch --merged | grep -v master | xargs git branch -d"
+alias main=master
 master() {
   default_branch=$(git remote show origin | grep 'HEAD branch' | cut -d' ' -f5)
   echo "git checkout $default_branch && git pull"
@@ -109,7 +109,26 @@ alias k="command kubectl"
 alias getNodePorts="kubectl get svc --all-namespaces -o go-template='{{range .items}}{{range.spec.ports}}{{if .nodePort}}{{.nodePort}} - {{.name}}{{\"\n\"}}{{end}}{{end}}{{end}}' "
 alias show-contexts="kubectl config get-contexts"
 alias test-pod="kubectl run samkirsch-test-shell --rm -i --tty --image ubuntu -- bash"
-
+kube-ns() {
+  command kubectl config set-context --current --namespace=$1
+}
+pod-pids() {
+  echo """bash -c 'for pid in \$(ls /proc/ | grep -Eo "[0-9]+"); do f="/proc/\${pid}/cmdline"; if [[ -f \$f ]]; then echo "==========================="; echo \$pid; cat \$f; echo ""; echo ""; fi; done"""
+}
+kube-secret() {
+  ns=$1
+  secret=$2
+  if [[ -z $ns ]] || [[ -z $secret ]]; then
+    echo "This func takes positional args [NAMESPACE] and [SECRET_NAME]"
+    echo "Example: kube-secret my-namespace secretName"
+    return
+  fi
+  select value in $(kubectl -n $ns get secrets $secret -o yaml | yq -rc '.data | keys[]'); do 
+    break;
+  done
+  echo "Getting secret [${secret}] value under .data.${value}"
+  kubectl -n $ns get secrets $secret -o yaml | yq -r ".data.${value}" | base64 -d
+}
 
 # GCLOUD Stuff
 # /Users/sxk3161/repos/github.com/samkirsch10/terminator/scripts/iTermProdWatcher.py &

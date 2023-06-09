@@ -25,17 +25,17 @@ if [ ! -n "${BULLETTRAIN_PROMPT_ORDER+1}" ]; then
     dir
     screen
     perl
-    ruby
+    #ruby
     virtualenv
-    nvm
+    #nvm
     aws
     go
     gcloud
     kctx
-    rust
-    elixir
+    #rust
+    #elixir
     git
-    hg
+    #hg
     #cmd_exec_time
   )
 fi
