@@ -5,6 +5,7 @@ import shell from "shelljs"
 import fuzzy from "fuzzy"
 import inquirer from "inquirer";
 import _ from "lodash"
+import fs from "fs"
 
 
 var HOME = shell.env.HOME
@@ -20,8 +21,13 @@ function refreshProjectList() {
 }
 
 function getProjectList() {
+    if ("K8S_CLUSTER_PROJECTS" in process.env) {
+        console.log("Found 'K8S_CLUSTER_PROJECTS' env var. Using that.")
+        return process.env.K8S_CLUSTERS.split(",")
+    }
     if (shell.test('-f', projectListFile)) {
-        return shell.cat(projectListFile).split('\n')
+        var output = fs.readFileSync(projectListFile, "utf-8")
+        return output.split('\n')
     } else {
         refreshProjectList()
         return getProjectList()

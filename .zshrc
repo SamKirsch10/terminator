@@ -96,7 +96,18 @@ dexec() {
 
 # git stuff
 # alias master="git checkout master && git pull"
-alias remove-branches="git branch --merged | grep -v master | xargs git branch -d"
+remove-branches() {
+  REMOTES=$(git ls-remote $(git remote -v | tail -1 | awk '{print $2}'))
+  if [[ $? -ne 0 ]]; then
+    return
+  fi
+  for branch in $(git branch | grep -v 'master\|main\|*'); do 
+    if [[ "$REMOTES" != *"$branch"* ]]; then
+      echo "git branch -D $branch"
+      git branch -D $branch  
+    fi
+  done
+}  
 alias main=master
 master() {
   default_branch=$(git remote show origin | grep 'HEAD branch' | cut -d' ' -f5)

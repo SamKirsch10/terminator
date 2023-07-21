@@ -49,7 +49,7 @@ const boxenOptions = {
  padding: 1,
  margin: 1,
  borderStyle: "double",
- borderColor: "blue",
+ borderColor: "magenta",
 };
 const intro = chalk.white.bold("K8s Context Switcher")
 const msgBox = boxen( intro, boxenOptions );
