@@ -18,3 +18,6 @@ diff = auto
 [pager]
     branch = false
 
+[user]
+	name = samkirsch10
+	email = samkirsch@gmail.com

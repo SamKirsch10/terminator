@@ -1,5 +1,5 @@
 # If you come from bash you might have to change your $PATH.
-export PATH=$HOME/go/bin:$HOME/bin:/usr/local/bin:/usr/local/go/bin:$PATH
+export PATH=/opt/homebrew/bin:$HOME/go/bin:$HOME/bin:/usr/local/bin:/usr/local/go/bin:$PATH
 
 # Apache Maven Environment Variables
 # MAVEN_HOME for Maven 1 - M2_HOME for Maven 2
@@ -9,7 +9,7 @@ export PATH=${M2_HOME}/bin:${PATH}
 # Path to your oh-my-zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
 
-eval $(/opt/homebrew/bin/brew shellenv)
+eval $(brew shellenv)
 
 export PATH=$HOME/src/fsdev/tools/node/bin/:$HOME/src/fsdev/tools/python3/bin:$PATH
 export PATH=$HOME/.local/bin:$PATH
@@ -45,7 +45,7 @@ export DOCKER_BUILDKIT=0
 # source ~/venv3/bin/activate
 
 # Random Alias stuff
-#alias python=python3
+alias python=python3
 alias venv3="source ~/venv3/bin/activate"
 monitor-input() {
   # https://github.com/waydabber/m1ddc
@@ -155,9 +155,9 @@ alias force_drain="~/repos/github.com/samkirsch10/terminator/scripts/k8s_drain.s
 alias force_drain="~/repos/github.com/samkirsch10/samkirsch10-terminator/scripts/k8s_drain.sh"
 eval "$(direnv hook zsh)"
 
-export KUBECTL_FZF_PORT_FORWARD_LOCAL_PORT=8765
+# export KUBECTL_FZF_PORT_FORWARD_LOCAL_PORT=8765
 
-source <(kubectl completion zsh)
-source ~/.kubectl_fzf.plugin.zsh
+# source <(kubectl completion zsh)
+# source ~/.kubectl_fzf.plugin.zsh
 
 
