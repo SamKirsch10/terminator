@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -45,6 +47,8 @@ type ZPool struct {
 }
 
 var (
+	debugFlag = false
+
 	zpoolPoolScan = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "zpool_scan_percent_done",
@@ -56,6 +60,12 @@ var (
 			Name: "zpool_scan_eta",
 		},
 		[]string{"pool"},
+	)
+	zpoolPoolState = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "zpool_state",
+		},
+		[]string{"pool", "state"},
 	)
 	zpoolDiskState = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -81,7 +91,7 @@ var (
 		},
 		[]string{"pool", "disk"},
 	)
-	zpoolStates = []string{"ONLINE", "DEGRADED", "FAULTED"}
+	zpoolStates = []string{"ONLINE", "ONLINE/SCRUBBING", "DEGRADED", "DEGRADED/SCRUBBING", "FAULTED", "FAULTED/SCRUBBING"}
 )
 
 func delete_empty(s []string) []string {
@@ -96,6 +106,7 @@ func delete_empty(s []string) []string {
 
 func gatherData() *ZPool {
 	out := new(ZPool)
+	var err error
 
 	cmd := exec.Command("/usr/sbin/zpool", "status", "tank")
 	output, err := cmd.Output()
@@ -107,6 +118,9 @@ func gatherData() *ZPool {
 
 	out.Name = regexp.MustCompile("pool:\\s(.*)\n").FindAllStringSubmatch(cmdOutput, 1)[0][1]
 	out.State = regexp.MustCompile("state:\\s(.*)\n").FindAllStringSubmatch(cmdOutput, 1)[0][1]
+	if strings.Contains(cmdOutput, "scrub in progress") {
+		out.State = out.State + "/SCRUBBING"
+	}
 
 	s := new(ScanState)
 	scanTmp := cmdOutput[strings.Index(cmdOutput, "scan:")+5 : strings.Index(cmdOutput, "config:")]
@@ -132,6 +146,13 @@ func gatherData() *ZPool {
 			continue
 		}
 		elements := delete_empty(strings.Split(strings.Replace(line, "\t", "", -1), "  "))
+		if debugFlag {
+			log.Println(elements)
+			log.Println(len(elements))
+		}
+		if len(elements) == 0 || elements[0] == "" {
+			continue
+		}
 		if elements[0] == out.Name {
 			poolFound = true
 		} else if elements[0][0:4] == "raid" {
@@ -149,12 +170,23 @@ func gatherData() *ZPool {
 		}
 	}
 
+	if debugFlag {
+		spew.Dump(out)
+	}
+
 	return out
 }
 
 func gatherMetrics() {
 	log.Println("[INFO] Gathering Metrics...")
 	data := gatherData()
+	for _, state := range zpoolStates {
+		if data.State == state {
+			zpoolPoolState.WithLabelValues(data.Name, state).Set(1)
+		} else {
+			zpoolPoolState.WithLabelValues(data.Name, state).Set(0)
+		}
+	}
 	for _, disk := range data.Disks {
 		for _, state := range zpoolStates {
 			if disk.State == state {
@@ -174,15 +206,20 @@ func gatherMetrics() {
 }
 
 func init() {
+	flag.BoolVar(&debugFlag, "debug", debugFlag, "Toggle debug mode")
+
 	prometheus.Register(zpoolDiskState)
 	prometheus.Register(zpoolDiskChecksumErrors)
 	prometheus.Register(zpoolDiskReadErrors)
 	prometheus.Register(zpoolDiskWriteErrors)
 	prometheus.Register(zpoolPoolScan)
 	prometheus.Register(zpoolPoolScanEta)
+	prometheus.Register(zpoolPoolState)
 }
 
 func main() {
+	flag.Parse()
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	go func(ctx context.Context) {
