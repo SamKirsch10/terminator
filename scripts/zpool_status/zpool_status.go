@@ -31,14 +31,32 @@ type ZDisk struct {
 	CKSumErrors int
 }
 
+type ScanState struct {
+	PercentDone float64
+	ETA         time.Duration
+}
+
 type ZPool struct {
 	Name  string
 	Type  string
 	State string
+	Scan  ScanState
 	Disks []ZDisk
 }
 
 var (
+	zpoolPoolScan = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "zpool_scan_percent_done",
+		},
+		[]string{"pool"},
+	)
+	zpoolPoolScanEta = promauto.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "zpool_scan_eta",
+		},
+		[]string{"pool"},
+	)
 	zpoolDiskState = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "zpool_disk_state",
@@ -90,6 +108,20 @@ func gatherData() *ZPool {
 	out.Name = regexp.MustCompile("pool:\\s(.*)\n").FindAllStringSubmatch(cmdOutput, 1)[0][1]
 	out.State = regexp.MustCompile("state:\\s(.*)\n").FindAllStringSubmatch(cmdOutput, 1)[0][1]
 
+	s := new(ScanState)
+	scanTmp := cmdOutput[strings.Index(cmdOutput, "scan:")+5 : strings.Index(cmdOutput, "config:")]
+	if strings.Contains(scanTmp, "% done") {
+		p := regexp.MustCompile("([0-9]{2}.[0-9]{2})% done").FindAllStringSubmatch(scanTmp, 1)[0][1]
+		if s.PercentDone, err = strconv.ParseFloat(p, 64); err != nil {
+			log.Fatal(err)
+		}
+	}
+	if strings.Contains(scanTmp, "to go") {
+		t := strings.Split(regexp.MustCompile("([0-9]{2}:[0-9]{2}:[0-9]{2}) to go").FindAllStringSubmatch(scanTmp, 1)[0][1], ":")
+		s.ETA, _ = time.ParseDuration(fmt.Sprintf("%sh%sm%ss", t[0], t[1], t[2]))
+	}
+	out.Scan = *s
+
 	tmp := cmdOutput[strings.Index(cmdOutput, "config:")+7 : strings.Index(cmdOutput, "errors:")]
 
 	var dataFound bool
@@ -135,6 +167,9 @@ func gatherMetrics() {
 		zpoolDiskReadErrors.WithLabelValues(data.Name, disk.Disk).Set(float64(disk.ReadErrors))
 		zpoolDiskWriteErrors.WithLabelValues(data.Name, disk.Disk).Set(float64(disk.WriteErrors))
 
+		zpoolPoolScan.WithLabelValues(data.Name).Set(data.Scan.PercentDone)
+		zpoolPoolScanEta.WithLabelValues(data.Name).Set(float64(data.Scan.ETA.Milliseconds()))
+
 	}
 }
 
@@ -143,6 +178,8 @@ func init() {
 	prometheus.Register(zpoolDiskChecksumErrors)
 	prometheus.Register(zpoolDiskReadErrors)
 	prometheus.Register(zpoolDiskWriteErrors)
+	prometheus.Register(zpoolPoolScan)
+	prometheus.Register(zpoolPoolScanEta)
 }
 
 func main() {
