@@ -104,17 +104,19 @@ func delete_empty(s []string) []string {
 	return r
 }
 
-func gatherData() *ZPool {
-	out := new(ZPool)
-	var err error
-
+func zpoolStatus() (string, error) {
 	cmd := exec.Command("/usr/sbin/zpool", "status", "tank")
 	output, err := cmd.Output()
 	if err != nil {
 		log.Println("[ERROR] Failed to run `zpool status tank`")
-		return out
+		return "", err
 	}
-	cmdOutput := string(output)
+	return string(output), nil
+}
+
+func parseStatusOutput(cmdOutput string) (*ZPool, error) {
+	out := new(ZPool)
+	var err error
 
 	out.Name = regexp.MustCompile("pool:\\s(.*)\n").FindAllStringSubmatch(cmdOutput, 1)[0][1]
 	out.State = regexp.MustCompile("state:\\s(.*)\n").FindAllStringSubmatch(cmdOutput, 1)[0][1]
@@ -127,12 +129,14 @@ func gatherData() *ZPool {
 	if strings.Contains(scanTmp, "% done") {
 		p := regexp.MustCompile("([0-9]{2}.[0-9]{2})% done").FindAllStringSubmatch(scanTmp, 1)[0][1]
 		if s.PercentDone, err = strconv.ParseFloat(p, 64); err != nil {
-			log.Fatal(err)
+			return out, err
 		}
 	}
 	if strings.Contains(scanTmp, "to go") {
 		t := strings.Split(regexp.MustCompile("([0-9]{2}:[0-9]{2}:[0-9]{2}) to go").FindAllStringSubmatch(scanTmp, 1)[0][1], ":")
-		s.ETA, _ = time.ParseDuration(fmt.Sprintf("%sh%sm%ss", t[0], t[1], t[2]))
+		if s.ETA, err = time.ParseDuration(fmt.Sprintf("%sh%sm%ss", t[0], t[1], t[2])); err != nil {
+			return out, err
+		}
 	}
 	out.Scan = *s
 
@@ -174,12 +178,21 @@ func gatherData() *ZPool {
 		spew.Dump(out)
 	}
 
-	return out
+	return out, nil
 }
 
 func gatherMetrics() {
 	log.Println("[INFO] Gathering Metrics...")
-	data := gatherData()
+	var data *ZPool
+
+	if cmdOutput, err := zpoolStatus(); err != nil {
+		log.Fatal(err)
+	} else {
+		if data, err = parseStatusOutput(cmdOutput); err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	for _, state := range zpoolStates {
 		if data.State == state {
 			zpoolPoolState.WithLabelValues(data.Name, state).Set(1)
