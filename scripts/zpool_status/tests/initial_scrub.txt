@@ -1,0 +1,17 @@
+  pool: tank
+ state: ONLINE
+  scan: scrub in progress since Sun Oct  8 12:54:57 2023
+        5.46T scanned at 175G/s, 1.74G issued at 55.7M/s, 8.30T total
+        0B repaired, 0.02% done, 1 days 19:24:47 to go
+config:
+
+        NAME                                           STATE     READ WRITE CKSUM
+        tank                                           ONLINE       0     0     0
+          raidz2-0                                     ONLINE       0     0     0
+            ata-TOSHIBA_HDWG440_23Q0A056FZ1G-part1     ONLINE       0     0     0
+            ata-WDC_WD4003FRYZ-01F0DB0_VB00B1EF-part1  ONLINE       0     0     0
+            ata-WDC_WD4003FRYZ-01F0DB0_V1J1PJZG-part1  ONLINE       0     0     0
+            ata-WDC_WD4003FRYZ-01F0DB0_V1KW5XVG-part1  ONLINE       0     0     0
+            ata-ST4000NT001-3M2101_WRA0FCAE-part1      ONLINE       0     0     0
+
+errors: No known data errors

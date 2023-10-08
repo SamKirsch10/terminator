@@ -26,8 +26,18 @@ func TestStatusScrub(t *testing.T) {
 		t.Errorf("Pool state check failed, got: %s, want %s", data.State, "ONLINE/SCRUBBING")
 	}
 
-	if data.Scan.PercentDone != 38.89 {
-		t.Errorf("Pool scan percent done check failed, got: %f, want %f", data.Scan.PercentDone, 38.89)
+	want := 38.89
+	if data.Scan.PercentDone != want {
+		t.Errorf("Pool scan percent done check failed, got: %f, want %f", data.Scan.PercentDone, want)
+	}
+}
+
+func TestScrubInitPerc(t *testing.T) {
+	data := parseTestFile("tests/initial_scrub.txt", t)
+
+	want := 0.02
+	if data.Scan.PercentDone != want {
+		t.Errorf("Pool scan percent done check failed, got: %f, want %f", data.Scan.PercentDone, want)
 	}
 }
 

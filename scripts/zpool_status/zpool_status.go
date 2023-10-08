@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -132,7 +133,8 @@ func parseStatusOutput(cmdOutput string) (*ZPool, error) {
 			p = m[0][1]
 		} else {
 			log.Println("[WARN] Cannot regex out % done")
-			log.Printf("Found: '+%v'", m)
+			log.Printf("[WARN] Found: '+%v'", m)
+			return out, errors.New("cannot determine percent from regex")
 		}
 		if s.PercentDone, err = strconv.ParseFloat(p, 64); err != nil {
 			return out, err
