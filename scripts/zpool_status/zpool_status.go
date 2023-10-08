@@ -127,7 +127,13 @@ func parseStatusOutput(cmdOutput string) (*ZPool, error) {
 	s := new(ScanState)
 	scanTmp := cmdOutput[strings.Index(cmdOutput, "scan:")+5 : strings.Index(cmdOutput, "config:")]
 	if strings.Contains(scanTmp, "% done") {
-		p := regexp.MustCompile("([0-9]{2}.[0-9]{2})% done").FindAllStringSubmatch(scanTmp, 1)[0][1]
+		var p string
+		if m := regexp.MustCompile("([0-9]{1,2}.[0-9]{1,2})% done").FindAllStringSubmatch(scanTmp, 1); len(m) == 1 {
+			p = m[0][1]
+		} else {
+			log.Println("[WARN] Cannot regex out % done")
+			log.Printf("Found: '+%v'", m)
+		}
 		if s.PercentDone, err = strconv.ParseFloat(p, 64); err != nil {
 			return out, err
 		}
