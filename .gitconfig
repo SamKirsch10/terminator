@@ -23,6 +23,9 @@ diff = auto
 [pager]
     branch = false
 
+[core]
+	fsmonitor = true
+	untrackedcache = true
 [user]
-	name = samkirsch10
-	email = samkirsch10@users.noreply.github.com
+	name = Sam Kirsch
+	email = samkirsch@fullstory.com

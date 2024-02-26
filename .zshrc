@@ -1,5 +1,5 @@
 # If you come from bash you might have to change your $PATH.
-export PATH=/opt/homebrew/bin:$HOME/go/bin:$HOME/bin:/usr/local/bin:/usr/local/go/bin:$PATH
+export PATH=~/src/terminator/scripts:/usr/local/opt/make/libexec/gnubin:/opt/homebrew/bin:$HOME/go/bin:$HOME/bin:/usr/local/bin:/usr/local/go/bin:$PATH
 
 # Apache Maven Environment Variables
 # MAVEN_HOME for Maven 1 - M2_HOME for Maven 2
@@ -11,8 +11,8 @@ export ZSH="$HOME/.oh-my-zsh"
 
 eval $(brew shellenv)
 
-export PATH=$HOME/src/fsdev/tools/node/bin/:$HOME/src/fsdev/tools/python3/bin:$PATH
-export PATH=$HOME/.local/bin:$PATH
+export PATH=$HOME/src/fsdev/tools/node/bin/:$HOME/src/fsdev/tools/python3/bin:$HOME/src/fsdev/tools/helm/:$HOME/src/fsdev/tools/terraform:$HOME/src/mn/projects/fullstory/bin/:$PATH
+export PATH=$PATH:$HOME/.local/bin
 
 export GOROOT=/usr/local/go
 
