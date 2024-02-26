@@ -36,12 +36,11 @@ plugins=(
   gitfast
 )
 
-export ZSH_DISABLE_COMPFIX="true"
+# export ZSH_DISABLE_COMPFIX="true"
 source $ZSH/oh-my-zsh.sh
 
 # export ANSIBLE_VAULT_PASSWORD_FILE=/home/skirsch/v
 
-export DOCKER_BUILDKIT=0
 # source ~/venv3/bin/activate
 
 # Random Alias stuff
@@ -95,7 +94,7 @@ dexec() {
 }
 
 # git stuff
-# alias master="git checkout master && git pull"
+alias git-sha="git rev-parse HEAD"
 remove-branches() {
   REMOTES=$(git ls-remote $(git remote -v | tail -1 | awk '{print $2}'))
   if [[ $? -ne 0 ]]; then
@@ -114,12 +113,28 @@ master() {
   echo "git checkout $default_branch && git pull"
   git checkout $default_branch && git pull
 }
+rebase() {
+  default_branch=$(git remote show origin | grep 'HEAD branch' | cut -d' ' -f5)
+  current_branch=$(git rev-parse --abbrev-ref HEAD)
+  if [[ "$default_branch" == "$current_branch" ]]; then
+    echo "Can't rebase the $default_branch branch!"
+    return
+  fi
+  master
+  git checkout $current_branch
+  git rebase $default_branch
+}
+green() {
+  git checkout green && git pull
+}
 
 # KUBERNETES STUFFs
+export KUBECTL_EXTERNAL_DIFF="dyff between --omit-header --set-exit-code"
 alias k="command kubectl"
 alias getNodePorts="kubectl get svc --all-namespaces -o go-template='{{range .items}}{{range.spec.ports}}{{if .nodePort}}{{.nodePort}} - {{.name}}{{\"\n\"}}{{end}}{{end}}{{end}}' "
 alias show-contexts="kubectl config get-contexts"
 alias test-pod="kubectl run samkirsch-test-shell --rm -i --tty --image ubuntu -- bash"
+alias klogs="command kubectl logs -f"
 kube-ns() {
   command kubectl config set-context --current --namespace=$1
 }
@@ -140,10 +155,27 @@ kube-secret() {
   echo "Getting secret [${secret}] value under .data.${value}"
   kubectl -n $ns get secrets $secret -o yaml | yq -r ".data.${value}" | base64 -d
 }
+kube-cronjob() {
+  name=$1
+  action=$2
+  suspend=""
+  if [[ "$action" == "suspend" ]]; then
+    suspend="true"
+  elif [[ "$action" == "resume" ]]; then
+    suspend="false"
+  else 
+    echo "kube-cronjob expects arguments with an action of suspend/resume"
+    echo "example: kube-cronjob samsJob suspend"
+    echo -e "\nYou can pass additional arguments to the resulting kubectl cmd after the action argument (like namespace etc)"
+    echo "example: kube-cronjob samsJob suspend -n someNamespace"
+    return 
+  fi
+  shift;
+  shift;
+  kubectl patch cronjob $name -p "{\"spec\" : {\"suspend\" : $suspend }}" "$@"
+}
 
 # GCLOUD Stuff
-# /Users/sxk3161/repos/github.com/samkirsch10/terminator/scripts/iTermProdWatcher.py &
-export USE_GKE_GCLOUD_AUTH_PLUGIN=True
 g-proj() {
   echo "$(cat ~/.config/gcloud/configurations/config_default | grep project | awk '{print $NF}')"
 }
@@ -152,12 +184,16 @@ g-proj() {
 alias cls="gcloud container clusters list"
 alias force_drain="~/repos/github.com/samkirsch10/terminator/scripts/k8s_drain.sh"
 
-alias force_drain="~/repos/github.com/samkirsch10/samkirsch10-terminator/scripts/k8s_drain.sh"
+
+alias fs-playpen="fsk8s fs-playpen"
+alias fs-ops="fsk8s fs-ops"
+alias fs-staging="fsk8s fs-staging"
+alias fullstoryapp="fsk8s fullstoryapp"
+
+export SKIP_FS_PS1=1
+export FS_SKIP_CD=1
+source /Users/samkirsch/.fsprofile
 eval "$(direnv hook zsh)"
 
-# export KUBECTL_FZF_PORT_FORWARD_LOCAL_PORT=8765
 
-# source <(kubectl completion zsh)
-# source ~/.kubectl_fzf.plugin.zsh
-
-
+alias ssh="~/src/terminator/scripts/fsssh.sh"
