@@ -1,0 +1,13 @@
+## /etc/systemd/system/authorized_keys.service
+[Unit]
+Description=ssh authorized keys syncer
+ConditionFileIsExecutable=/opt/authorized_keys
+
+
+[Service]
+ExecStart=/opt/authorized_keys -client
+Restart=always
+RestartSec=120
+
+[Install]
+WantedBy=multi-user.target
