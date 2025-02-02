@@ -13,6 +13,5 @@ RUN apt update && \
     apt install -y zfsutils-linux
 
 COPY --from=buildenv /app/zpool_status /app/
-COPY zpool_status /app/
 
 ENTRYPOINT [ "/app/zpool_status" ]
