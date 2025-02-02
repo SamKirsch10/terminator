@@ -4,61 +4,105 @@ package main
 
 import (
 	"context"
-	"errors"
+	"encoding/json"
 	"flag"
-	"fmt"
-	"log"
 	"net/http"
 	"os/exec"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/gorilla/mux"
+	"github.com/hairyhenderson/go-which"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
 	gatherSleep = 15 * time.Second
 )
 
-type ZDisk struct {
-	Disk        string
-	State       string
-	ReadErrors  int
-	WriteErrors int
-	CKSumErrors int
+type VDevType string
+type ZpoolState string
+
+const (
+	VDevTypeDisk                = VDevType("disk")
+	VDevTypeRaidz               = VDevType("raidz")
+	VDevTypeMirror              = VDevType("mirror")
+	ZpoolStateOnline            = ZpoolState("ONLINE")
+	ZpoolStateScrubbing         = ZpoolState("ONLINE/SCRUBBING")
+	ZpoolStateDegraded          = ZpoolState("DEGRADED")
+	ZpoolStateDegradedScrubbing = ZpoolState("DEGRADED/SCRUBBING")
+	ZpoolStateFaulted           = ZpoolState("FAULTED")
+	ZpoolStateFaultedScrubbing  = ZpoolState("FAULTED/SCRUBBING")
+)
+
+type Disk struct {
+	Name           string   `json:"name"`
+	VdevType       VDevType `json:"vdev_type"`
+	GUID           string   `json:"guid"`
+	Class          string   `json:"class"`
+	State          string   `json:"state"`
+	AllocSpace     string   `json:"alloc_space"`
+	TotalSpace     string   `json:"total_space"`
+	DefSpace       string   `json:"def_space"`
+	ReadErrors     string   `json:"read_errors"`
+	WriteErrors    string   `json:"write_errors"`
+	ChecksumErrors string   `json:"checksum_errors"`
 }
 
-type ScanState struct {
-	PercentDone float64
-	ETA         time.Duration
+type VDev struct {
+	Disk
+	DiskMakeup map[string]Disk `json:"vdevs"`
 }
 
 type ZPool struct {
-	Name  string
-	Type  string
-	State string
-	Scan  ScanState
-	Disks []ZDisk
+	Name       string `json:"name"`
+	State      string `json:"state"`
+	PoolGUID   string `json:"pool_guid"`
+	Txg        string `json:"txg"`
+	SpaVersion string `json:"spa_version"`
+	ZplVersion string `json:"zpl_version"`
+	ErrorCount string `json:"error_count"`
+	ScanStats  struct {
+		Function           string `json:"function"`
+		State              string `json:"state"`
+		StartTime          string `json:"start_time"`
+		EndTime            string `json:"end_time"`
+		ToExamine          string `json:"to_examine"`
+		Examined           string `json:"examined"`
+		Skipped            string `json:"skipped"`
+		Processed          string `json:"processed"`
+		Errors             string `json:"errors"`
+		BytesPerScan       string `json:"bytes_per_scan"`
+		PassStart          string `json:"pass_start"`
+		ScrubPause         string `json:"scrub_pause"`
+		ScrubSpentPaused   string `json:"scrub_spent_paused"`
+		IssuedBytesPerScan string `json:"issued_bytes_per_scan"`
+		Issued             string `json:"issued"`
+	} `json:"scan_stats"`
+	Vdevs map[string]VDev `json:"vdevs"`
+}
+
+type ZpoolOutput struct {
+	OutputVersion struct {
+		Command   string `json:"command"`
+		VersMajor int    `json:"vers_major"`
+		VersMinor int    `json:"vers_minor"`
+	} `json:"output_version"`
+	Pools map[string]ZPool `json:"pools"`
 }
 
 var (
-	debugFlag = false
+	zpool_bin = findZpoolBin()
+
+	zpoolStates = []ZpoolState{ZpoolStateOnline, ZpoolStateScrubbing, ZpoolStateDegraded, ZpoolStateDegradedScrubbing, ZpoolStateFaulted, ZpoolStateFaultedScrubbing}
 
 	zpoolPoolScan = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "zpool_scan_percent_done",
-		},
-		[]string{"pool"},
-	)
-	zpoolPoolScanEta = promauto.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "zpool_scan_eta",
 		},
 		[]string{"pool"},
 	)
@@ -72,176 +116,197 @@ var (
 		prometheus.GaugeOpts{
 			Name: "zpool_disk_state",
 		},
-		[]string{"pool", "disk", "state"},
+		[]string{"pool", "vdev", "disk", "state"},
 	)
 	zpoolDiskReadErrors = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "zpool_disk_read_errors",
 		},
-		[]string{"pool", "disk"},
+		[]string{"pool", "vdev", "disk"},
 	)
 	zpoolDiskWriteErrors = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "zpool_disk_write_errors",
 		},
-		[]string{"pool", "disk"},
+		[]string{"pool", "vdev", "disk"},
 	)
 	zpoolDiskChecksumErrors = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "zpool_disk_chksum_errors",
 		},
-		[]string{"pool", "disk"},
+		[]string{"pool", "vdev", "disk"},
 	)
-	zpoolStates = []string{"ONLINE", "ONLINE/SCRUBBING", "DEGRADED", "DEGRADED/SCRUBBING", "FAULTED", "FAULTED/SCRUBBING"}
 )
 
-func delete_empty(s []string) []string {
-	var r []string
-	for _, str := range s {
-		if str != "" {
-			r = append(r, strings.Replace(str, " ", "", -1))
-		}
-	}
-	return r
-}
-
 func zpoolStatus() (string, error) {
-	cmd := exec.Command("/usr/sbin/zpool", "status", "tank")
+	cmd := exec.Command(zpool_bin, "status", "-j", "--json-flat-vdevs")
 	output, err := cmd.Output()
 	if err != nil {
-		log.Println("[ERROR] Failed to run `zpool status tank`")
+		log.Error("Failed to run `zpool status tank -j --json-flat-vdevs`")
 		return "", err
 	}
 	return string(output), nil
 }
 
-func parseStatusOutput(cmdOutput string) (*ZPool, error) {
-	out := new(ZPool)
-	var err error
+func parseDiskSize(sizeStr string) (float64, error) {
+	sizeStr = strings.TrimSpace(sizeStr)
+	log.Debug("trying to parse disk size: ", sizeStr)
 
-	out.Name = regexp.MustCompile("pool:\\s(.*)\n").FindAllStringSubmatch(cmdOutput, 1)[0][1]
-	out.State = regexp.MustCompile("state:\\s(.*)\n").FindAllStringSubmatch(cmdOutput, 1)[0][1]
-	if strings.Contains(cmdOutput, "scrub in progress") {
-		out.State = out.State + "/SCRUBBING"
+	var unit float64 = 1
+	switch strings.ToUpper(string(sizeStr[len(sizeStr)-1])) {
+	case "K":
+		unit = 1024
+	case "M":
+		unit = 1024 * 1024
+	case "G":
+		unit = 1024 * 1024 * 1024
+	case "T":
+		unit = 1024 * 1024 * 1024 * 1024
 	}
 
-	s := new(ScanState)
-	scanTmp := cmdOutput[strings.Index(cmdOutput, "scan:")+5 : strings.Index(cmdOutput, "config:")]
-	if strings.Contains(scanTmp, "% done") {
-		var p string
-		if m := regexp.MustCompile("([0-9]{1,2}.[0-9]{1,2})% done").FindAllStringSubmatch(scanTmp, 1); len(m) == 1 {
-			p = m[0][1]
-		} else {
-			log.Println("[WARN] Cannot regex out % done")
-			log.Printf("[WARN] Found: '+%v'", m)
-			return out, errors.New("cannot determine percent from regex")
-		}
-		if s.PercentDone, err = strconv.ParseFloat(p, 64); err != nil {
-			return out, err
-		}
-	}
-	if strings.Contains(scanTmp, "to go") {
-		t := strings.Split(regexp.MustCompile("([0-9]{2}:[0-9]{2}:[0-9]{2}) to go").FindAllStringSubmatch(scanTmp, 1)[0][1], ":")
-		if s.ETA, err = time.ParseDuration(fmt.Sprintf("%sh%sm%ss", t[0], t[1], t[2])); err != nil {
-			return out, err
-		}
-	}
-	out.Scan = *s
+	sizeStr = sizeStr[:len(sizeStr)-1]
 
-	tmp := cmdOutput[strings.Index(cmdOutput, "config:")+7 : strings.Index(cmdOutput, "errors:")]
-
-	var dataFound bool
-	var poolFound bool
-	for _, line := range strings.Split(tmp, "\n") {
-		d := new(ZDisk)
-		if line == "" {
-			continue
-		}
-		elements := delete_empty(strings.Split(strings.Replace(line, "\t", "", -1), "  "))
-		if debugFlag {
-			log.Println(elements)
-			log.Println(len(elements))
-		}
-		if len(elements) == 0 || elements[0] == "" {
-			continue
-		}
-		if elements[0] == out.Name {
-			poolFound = true
-		} else if elements[0][0:4] == "raid" {
-			dataFound = true
-			continue
-		}
-
-		if dataFound && poolFound {
-			d.Disk = elements[0]
-			d.State = elements[1]
-			d.ReadErrors, _ = strconv.Atoi(elements[2])
-			d.WriteErrors, _ = strconv.Atoi(elements[3])
-			d.CKSumErrors, _ = strconv.Atoi(elements[4])
-			out.Disks = append(out.Disks, *d)
-		}
+	size, err := strconv.ParseFloat(sizeStr, 64)
+	if err != nil {
+		return 0, err
 	}
 
-	if debugFlag {
-		spew.Dump(out)
-	}
+	return size * unit, nil
+}
 
-	return out, nil
+func dirtyStringToFloat(num string) float64 {
+	o, _ := strconv.ParseFloat(num, 64)
+	return o
+}
+
+func parseScrubPercent(data ZPool) (float64, error) {
+	total, err := parseDiskSize(data.ScanStats.ToExamine)
+	if err != nil {
+		log.Error("failed to calculate bytes total size for percent done metric")
+		return 0, err
+	}
+	done, err := parseDiskSize(data.ScanStats.Issued)
+	if err != nil {
+		log.Error("failed to calculate bytes done size for percent done metric")
+		return 0, err
+	}
+	log.Debugf("parcing percent with values %f / %f", done, total)
+
+	return (done / total) * 100, nil
+}
+
+func getPoolState(data ZPool) ZpoolState {
+	isScrubbing := data.ScanStats.Function == "SCRUB" && data.ScanStats.State != "FINISHED"
+	state := ZpoolState(data.State)
+
+	if !isScrubbing {
+		return state
+	}
+	switch state {
+	case ZpoolStateOnline:
+		return ZpoolStateScrubbing
+	case ZpoolStateDegraded:
+		return ZpoolStateDegradedScrubbing
+	case ZpoolStateFaulted:
+		return ZpoolStateFaultedScrubbing
+	default:
+		panic("unknown state during scrubbing!")
+	}
 }
 
 func gatherMetrics() {
-	log.Println("[INFO] Gathering Metrics...")
-	var data *ZPool
+	log.Info("Gathering Metrics...")
+	var output ZpoolOutput
 
 	if cmdOutput, err := zpoolStatus(); err != nil {
 		log.Fatal(err)
 	} else {
-		if data, err = parseStatusOutput(cmdOutput); err != nil {
+		if err = json.Unmarshal([]byte(cmdOutput), &output); err != nil {
 			log.Fatal(err)
 		}
 	}
 
-	for _, state := range zpoolStates {
-		if data.State == state {
-			zpoolPoolState.WithLabelValues(data.Name, state).Set(1)
-		} else {
-			zpoolPoolState.WithLabelValues(data.Name, state).Set(0)
-		}
-	}
-	for _, disk := range data.Disks {
+	for pool, data := range output.Pools {
+		log.Debugf("Checking pool %s", pool)
 		for _, state := range zpoolStates {
-			if disk.State == state {
-				zpoolDiskState.WithLabelValues(data.Name, disk.Disk, state).Set(1)
-			} else {
-				zpoolDiskState.WithLabelValues(data.Name, disk.Disk, state).Set(0)
+			var status float64
+			state = getPoolState(data)
+			if ZpoolState(data.State) == state {
+				status = 1
+			}
+			zpoolPoolState.WithLabelValues(data.Name, string(state)).Set(status)
+		}
+		for vDevName, vdev := range data.Vdevs {
+			if vDevName == pool {
+				continue
+			}
+			for name, disk := range vdev.DiskMakeup {
+				for _, state := range zpoolStates {
+					var status float64
+					if ZpoolState(data.State) == state {
+						status = 1
+					}
+					zpoolDiskState.WithLabelValues(data.Name, vDevName, name, string(state)).Set(status)
+				}
+				zpoolDiskChecksumErrors.WithLabelValues(data.Name, vDevName, name).Set(dirtyStringToFloat(disk.ChecksumErrors))
+				zpoolDiskReadErrors.WithLabelValues(data.Name, vDevName, name).Set(dirtyStringToFloat(disk.ReadErrors))
+				zpoolDiskWriteErrors.WithLabelValues(data.Name, vDevName, name).Set(dirtyStringToFloat(disk.WriteErrors))
 			}
 		}
-		zpoolDiskChecksumErrors.WithLabelValues(data.Name, disk.Disk).Set(float64(disk.CKSumErrors))
-		zpoolDiskReadErrors.WithLabelValues(data.Name, disk.Disk).Set(float64(disk.ReadErrors))
-		zpoolDiskWriteErrors.WithLabelValues(data.Name, disk.Disk).Set(float64(disk.WriteErrors))
 
-		zpoolPoolScan.WithLabelValues(data.Name).Set(data.Scan.PercentDone)
-		zpoolPoolScanEta.WithLabelValues(data.Name).Set(float64(data.Scan.ETA.Milliseconds()))
+		log.Debugf("Trying to parse scrub status: %s issued / %s toExamine", data.ScanStats.Issued, data.ScanStats.ToExamine)
+		percent, err := parseScrubPercent(data)
+		if err != nil {
+			log.Errorf("failed to calculate scrub percent: %v", err)
+		} else {
+			zpoolPoolScan.WithLabelValues(data.Name).Set(percent)
+		}
 
 	}
 }
 
 func init() {
-	flag.BoolVar(&debugFlag, "debug", debugFlag, "Toggle debug mode")
-
 	prometheus.Register(zpoolDiskState)
 	prometheus.Register(zpoolDiskChecksumErrors)
 	prometheus.Register(zpoolDiskReadErrors)
 	prometheus.Register(zpoolDiskWriteErrors)
 	prometheus.Register(zpoolPoolScan)
-	prometheus.Register(zpoolPoolScanEta)
 	prometheus.Register(zpoolPoolState)
 }
 
+func findZpoolBin() string {
+	return which.Which("zpool")
+}
+
 func main() {
+	port := flag.String("port", "9000", "Port to listen on")
+	lvl := flag.String("log-lvl", "INFO", "Log level")
 	flag.Parse()
 
+	loglvl := log.WarnLevel
+	switch strings.ToUpper(*lvl) {
+	case "INFO":
+		loglvl = log.InfoLevel
+	case "DEBUG":
+		loglvl = log.DebugLevel
+	case "WARN":
+		loglvl = log.WarnLevel
+	case "ERROR":
+		loglvl = log.ErrorLevel
+	default:
+		panic("unknown log level. try `INFO`, `DEBUG`, `WARN`, or `ERROR`")
+	}
+	log.SetLevel(loglvl)
+	log.SetFormatter(&log.TextFormatter{
+		DisableColors: true,
+		FullTimestamp: true,
+	})
+
 	ctx, cancel := context.WithCancel(context.Background())
+
+	if zpool_bin == "" {
+		log.Fatal("failed to find `zpool` binary. Exiting")
+	}
 
 	go func(ctx context.Context) {
 		gatherMetrics()
@@ -263,8 +328,8 @@ func main() {
 	// Prometheus endpoint
 	router.Path("/metrics").Handler(promhttp.Handler())
 
-	fmt.Println("Serving requests on port 9000")
-	err := http.ListenAndServe(":9000", router)
+	log.Info("Serving requests on port " + *port)
+	err := http.ListenAndServe(":"+*port, router)
 	log.Fatal(err)
 
 }
