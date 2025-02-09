@@ -12,10 +12,7 @@ ENV TZ=America/New_York
 COPY debian.sources /etc/apt/sources.list.d/debian.sources
 
 RUN apt update && \
-    apt upgrade -y && \
-    apt install -y gcc zlib1g-dev uuid-dev libblkid-dev libtirpc-dev libssl-dev linux-headers-generic
-
-RUN apt -t experimental install -y zfsutils-linux
+    apt -t experimental install -y zfsutils-linux
 
 COPY --from=buildenv /app/zpool_status /app/
 
