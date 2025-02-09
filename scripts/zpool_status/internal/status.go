@@ -2,7 +2,6 @@ package internal
 
 import (
 	"encoding/json"
-	"errors"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -43,35 +42,6 @@ func zpoolStatus() (string, error) {
 		return "", err
 	}
 	return string(output), nil
-}
-
-func parseDiskSize(sizeStr string) (float64, error) {
-	if sizeStr == "" {
-		return 0, errors.New("no string size detected")
-	}
-	sizeStr = strings.TrimSpace(sizeStr)
-	log.Debug("trying to parse disk size: ", sizeStr)
-
-	var unit float64 = 1
-	switch strings.ToUpper(string(sizeStr[len(sizeStr)-1])) {
-	case "K":
-		unit = 1024
-	case "M":
-		unit = 1024 * 1024
-	case "G":
-		unit = 1024 * 1024 * 1024
-	case "T":
-		unit = 1024 * 1024 * 1024 * 1024
-	}
-
-	sizeStr = sizeStr[:len(sizeStr)-1]
-
-	size, err := strconv.ParseFloat(sizeStr, 64)
-	if err != nil {
-		return 0, err
-	}
-
-	return size * unit, nil
 }
 
 func dirtyStringToFloat(num string) float64 {
@@ -140,6 +110,14 @@ func statusMetrics() {
 				continue
 			}
 			for name, disk := range vdev.DiskMakeup {
+				if disk.Path != "" && strings.Contains(disk.Path, "/dev/disk/by-") {
+					tmp, err := locateDiskByUUID(disk.Path)
+					if err != nil {
+						log.Errorf("failed to locate disk via uuid: %v", err)
+					} else {
+						name = tmp
+					}
+				}
 				for _, state := range zpoolStates {
 					var status float64
 					if ZpoolState(data.State) == state {

@@ -6,6 +6,7 @@ type Disk struct {
 	GUID           string   `json:"guid"`
 	Class          string   `json:"class"`
 	State          string   `json:"state"`
+	Path           string   `json:"path"`
 	AllocSpace     string   `json:"alloc_space"`
 	TotalSpace     string   `json:"total_space"`
 	DefSpace       string   `json:"def_space"`
