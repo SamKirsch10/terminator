@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"net/http"
 	"os/exec"
@@ -149,6 +150,9 @@ func zpoolStatus() (string, error) {
 }
 
 func parseDiskSize(sizeStr string) (float64, error) {
+	if sizeStr == "" {
+		return 0, errors.New("no string size detected!")
+	}
 	sizeStr = strings.TrimSpace(sizeStr)
 	log.Debug("trying to parse disk size: ", sizeStr)
 
