@@ -5,12 +5,17 @@ COPY go.mod go.sum ./
 COPY *.go ./
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build
 
-FROM ubuntu:noble
+FROM debian
 
 ENV TZ=America/New_York
 
+COPY debian.sources /etc/apt/sources.list.d/debian.sources
+
 RUN apt update && \
-    apt install -y zfsutils-linux
+    apt upgrade -y && \
+    apt install -y gcc zlib1g-dev uuid-dev libblkid-dev libtirpc-dev libssl-dev linux-headers-generic
+
+RUN apt -t experimental install -y zfsutils-linux
 
 COPY --from=buildenv /app/zpool_status /app/
 
