@@ -3,6 +3,7 @@ FROM golang:1.21 AS buildenv
 WORKDIR /app
 COPY go.mod go.sum ./
 COPY *.go ./
+COPY internal ./internal
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o zpool_status
 
 FROM debian
