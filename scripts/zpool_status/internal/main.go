@@ -40,6 +40,7 @@ func Run(ctx context.Context) {
 func gather() {
 	wg := sync.WaitGroup{}
 	for _, f := range []metricGatherer{statusMetrics, listMetrics} {
+		f := f
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
