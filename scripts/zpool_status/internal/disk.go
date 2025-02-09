@@ -3,6 +3,7 @@ package internal
 import (
 	"errors"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -47,6 +48,10 @@ func locateDiskByUUID(diskPath string) (string, error) {
 		return "", err
 	}
 	log.Debugf("got back disk: %s", realDisk)
+	// remove partition if it's linked, we just want to whole disk
+	if regexp.MustCompile(`.*[0-9]`).MatchString(realDisk) {
+		realDisk = string(realDisk[len(realDisk)-1])
+	}
 	parts := strings.Split(realDisk, "/")
 	return "/dev/" + parts[len(parts)-1], nil
 }
