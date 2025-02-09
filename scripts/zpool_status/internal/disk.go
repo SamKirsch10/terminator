@@ -50,7 +50,7 @@ func locateDiskByUUID(diskPath string) (string, error) {
 	log.Debugf("got back disk: %s", realDisk)
 	// remove partition if it's linked, we just want to whole disk
 	if regexp.MustCompile(`.*[0-9]`).MatchString(realDisk) {
-		realDisk = string(realDisk[len(realDisk)-1])
+		realDisk = string(realDisk[:len(realDisk)-1])
 	}
 	parts := strings.Split(realDisk, "/")
 	return "/dev/" + parts[len(parts)-1], nil
