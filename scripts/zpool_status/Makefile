@@ -1,7 +1,7 @@
 SHA = $(shell git rev-parse HEAD)
 
 build:
-	GOOS=linux GOARCH=amd64 go build zpool_status.go
+	GOOS=linux GOARCH=amd64 go build -o zpool_status
 
 clean:
 	rm -rf ./zpool_status
