@@ -29,3 +29,6 @@ diff = auto
 [user]
 	name = Sam Kirsch
 	email = samkirsch@fullstory.com
+
+[includeIf "gitdir:/Users/samkirsch/src/walmart-github/**"]
+  path = /Users/samkirsch/src/walmart-github/.gitconfig

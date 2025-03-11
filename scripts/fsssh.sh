@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 
+SCRIPT_NAME="$(basename "$(test -L "$0" && readlink "$0" || echo "$0")")"
+
+
 VM="$1"
 
 if [ -z $VM ]; then
 	echo "This script takes in a VM as an argument!"
+	echo "Example: $SCRIPT_NAME bastion-oslogin-rpn9"
+	echo "Example: $SCRIPT_NAME \"bastion.*play\""
 	exit 1
 fi
 

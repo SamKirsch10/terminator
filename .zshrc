@@ -1,6 +1,8 @@
 # If you come from bash you might have to change your $PATH.
 export PATH=~/src/terminator/scripts:/usr/local/opt/make/libexec/gnubin:/opt/homebrew/bin:$HOME/go/bin:$HOME/bin:/usr/local/bin:/usr/local/go/bin:$PATH
 
+export PATH=$PATH:/opt/homebrew/Cellar/libpq/17.2/bin
+
 # Apache Maven Environment Variables
 # MAVEN_HOME for Maven 1 - M2_HOME for Maven 2
 export M2_HOME=/usr/local/src/apache-maven
@@ -11,10 +13,10 @@ export ZSH="$HOME/.oh-my-zsh"
 
 eval $(brew shellenv)
 
-export PATH=$HOME/src/fsdev/tools/node/bin/:$HOME/src/fsdev/tools/python3/bin:$HOME/src/fsdev/tools/helm/:$HOME/src/fsdev/tools/terraform:$HOME/src/mn/projects/fullstory/bin/:$PATH
+export PATH=$HOME/src/fsdev/tools/node/bin/:$HOME/src/fsdev/tools/python3/bin:$HOME/src/fsdev/tools/helm/:$HOME/src/fsdev/tools/terraform:$HOME/src/mn/projects/fullstory/bin/:~/go/bin:$PATH
 export PATH=$PATH:$HOME/.local/bin
 
-export GOROOT=/usr/local/go
+export GOROOT=/Users/samkirsch/go
 
 # Set name of the theme to load. Optionally, if you set this to "random"
 # it'll load a random theme each time that oh-my-zsh is loaded.
@@ -78,7 +80,7 @@ alias rm_windows_line_ends="sed -i -e 's/\r$//'"
 alias tempdir="cd $(mktemp -d)"
 alias passhash="openssl passwd -1"
 alias socksProxy="~/src/terminator/scripts/socksProxy.sh"
-alias dfimage="docker run -v /var/run/docker.sock:/var/run/docker.sock --rm dduvnjak/dockerfile-from-image"
+alias dive="docker run -ti --rm  -v /var/run/docker.sock:/var/run/docker.sock wagoodman/dive"
 alias retry-ssh="~/src/terminator/scripts/retry-ssh.sh"
 if command -v fuck &> /dev/null; then
     eval $(thefuck --alias)
@@ -127,13 +129,22 @@ rebase() {
 green() {
   git checkout green && git pull
 }
+stash() {
+  MSG="$1"
+  if [[ -z "$MSG" ]]; then
+    echo "$0 expects a message!"
+    return
+  fi
+  echo "git stash save \"$MSG\""
+  git stash save "$MSG"
+}
 
 # KUBERNETES STUFFs
 export KUBECTL_EXTERNAL_DIFF="dyff between --omit-header --set-exit-code"
 alias k="command kubectl"
 alias getNodePorts="kubectl get svc --all-namespaces -o go-template='{{range .items}}{{range.spec.ports}}{{if .nodePort}}{{.nodePort}} - {{.name}}{{\"\n\"}}{{end}}{{end}}{{end}}' "
 alias show-contexts="kubectl config get-contexts"
-alias test-pod="kubectl run samkirsch-test-shell --rm -i --tty --image ubuntu -- bash"
+alias test-pod="kubectl run samkirsch-test-shell --rm -i --tty --image us-central1-docker.pkg.dev/fs-ops/fullstory-images/debugger -- bash"
 alias klogs="command kubectl logs -f"
 kube-ns() {
   command kubectl config set-context --current --namespace=$1
@@ -144,6 +155,12 @@ pod-pids() {
 kube-secret() {
   ns=$1
   secret=$2
+  if [[ -z $secret ]]; then
+    secret="$ns"
+    ns="default"
+    echo "using namespace 'default'."
+  fi
+
   if [[ -z $ns ]] || [[ -z $secret ]]; then
     echo "This func takes positional args [NAMESPACE] and [SECRET_NAME]"
     echo "Example: kube-secret my-namespace secretName"
@@ -153,7 +170,7 @@ kube-secret() {
     break;
   done
   echo "Getting secret [${secret}] value under .data.${value}"
-  kubectl -n $ns get secrets $secret -o yaml | yq -r ".data.${value}" | base64 -d
+  kubectl -n $ns get secrets $secret -o yaml | yq -r '.data["'${value}'"]' | base64 -d
 }
 kube-cronjob() {
   name=$1
@@ -173,6 +190,10 @@ kube-cronjob() {
   shift;
   shift;
   kubectl patch cronjob $name -p "{\"spec\" : {\"suspend\" : $suspend }}" "$@"
+}
+prom-op() {
+  pod=$(kubectl -n operators get pods | grep prometheus-operator | awk '{print $1}')
+  kubectl -n operators logs -f $pod
 }
 
 # GCLOUD Stuff
@@ -196,4 +217,4 @@ source /Users/samkirsch/.fsprofile
 eval "$(direnv hook zsh)"
 
 
-alias ssh="~/src/terminator/scripts/fsssh.sh"
+alias ssh="/Users/samkirsch/src/mn/projects/fullstory/tools/util/fsssh.sh"
