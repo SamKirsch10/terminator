@@ -18,6 +18,12 @@ export PATH=$PATH:$HOME/.local/bin
 
 export GOROOT=/Users/samkirsch/go
 
+
+# Sets history to record command time in epoch
+setopt EXTENDED_HISTORY
+# also records how long the command took to run
+setopt inc_append_history_time
+
 # Set name of the theme to load. Optionally, if you set this to "random"
 # it'll load a random theme each time that oh-my-zsh is loaded.
 # See https://github.com/robbyrussell/oh-my-zsh/wiki/Themes
@@ -117,12 +123,16 @@ master() {
 }
 rebase() {
   default_branch=$(git remote show origin | grep 'HEAD branch' | cut -d' ' -f5)
+  if [[ -n "$1" ]]; then
+    default_branch="$1"
+  fi
   current_branch=$(git rev-parse --abbrev-ref HEAD)
   if [[ "$default_branch" == "$current_branch" ]]; then
     echo "Can't rebase the $default_branch branch!"
     return
   fi
-  master
+  git checkout $default_branch
+  git pull
   git checkout $current_branch
   git rebase $default_branch
 }
@@ -142,6 +152,9 @@ stash() {
 # KUBERNETES STUFFs
 export KUBECTL_EXTERNAL_DIFF="dyff between --omit-header --set-exit-code"
 alias k="command kubectl"
+kw() {
+  watch -n1 kubectl $@
+}
 alias getNodePorts="kubectl get svc --all-namespaces -o go-template='{{range .items}}{{range.spec.ports}}{{if .nodePort}}{{.nodePort}} - {{.name}}{{\"\n\"}}{{end}}{{end}}{{end}}' "
 alias show-contexts="kubectl config get-contexts"
 alias test-pod="kubectl run samkirsch-test-shell --rm -i --tty --image us-central1-docker.pkg.dev/fs-ops/fullstory-images/debugger -- bash"
@@ -218,3 +231,51 @@ eval "$(direnv hook zsh)"
 
 
 alias ssh="/Users/samkirsch/src/mn/projects/fullstory/tools/util/fsssh.sh"
+
+
+
+#brew install gawk sk
+skim-history-widget() {
+  local selected num
+  setopt localoptions noglobsubst noposixbuiltins pipefail no_aliases 2> /dev/null
+  awk_filter='
+{
+  ts = int($2)
+  delta = systime() - ts
+  delta_days = int(delta / 86400)
+  if (delta < 0) { $2="+" (-delta_days) "d" }
+  else if (delta_days < 1 && delta < 72000) { $2=strftime("%H:%M", ts) }
+  else if (delta_days == 0) { $2="1d" }
+  else { $2=delta_days "d" }
+  line=$0; $1=""; $2=""
+  if (!seen[$0]++) print line
+}'
+  fc_opts='-i'
+  n=2
+  selected=( $(fc -rl $fc_opts -t '%s' 1 | sed -E "s/^ *//" | gawk "$awk_filter" |
+    SKIM_DEFAULT_OPTIONS="--height ${SKIM_TMUX_HEIGHT:-40%} $SKIM_DEFAULT_OPTIONS --with-nth $n.. --bind=ctrl-r:toggle-sort $SKIM_CTRL_R_OPTS --query=${(qqq)LBUFFER} --no-multi --tiebreak score,index,-begin" sk) )
+  local ret=$?
+  if [ -n "$selected" ]; then
+    num=$selected[1]
+    if [ -n "$num" ]; then
+      zle vi-fetch-history -n $num
+    fi
+  fi
+  zle reset-prompt
+  return $ret
+}
+zle     -N   skim-history-widget
+bindkey '^R' skim-history-widget
+
+
+sleep_with_countdown() {
+  secs=$((5 * 60))
+  if [[ -n $1 ]]; then
+    secs=$1
+  fi
+  while [ $secs -gt 0 ]; do
+     echo -ne "waiting ${secs}s\033[0K\r"
+     sleep 1
+     : $((secs--))
+  done
+}
