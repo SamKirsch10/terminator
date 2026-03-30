@@ -1,3 +1,8 @@
+# Uncomment the following line to disable bi-weekly auto-update checks.
+DISABLE_AUTO_UPDATE="true"
+DISABLE_MAGIC_FUNCTIONS="true"
+DISABLE_COMPFIX="true"
+
 # If you come from bash you might have to change your $PATH.
 export PATH=~/src/terminator/scripts:/usr/local/opt/make/libexec/gnubin:/opt/homebrew/bin:$HOME/go/bin:$HOME/bin:/usr/local/bin:/usr/local/go/bin:$PATH
 
@@ -30,19 +35,16 @@ setopt inc_append_history_time
 ZSH_THEME="bullet-train"
 
 
-# Uncomment the following line to disable bi-weekly auto-update checks.
-DISABLE_AUTO_UPDATE="true"
-
 # Which plugins would you like to load? (plugins can be found in ~/.oh-my-zsh/plugins/*)
 # Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
 plugins=(
   git
-  colored-man-pages
-  docker
-  gitfast
 )
+
+# skip colors by index. 1 = red
+export KUBETAIL_SKIP_COLORS="1"
 
 # export ZSH_DISABLE_COMPFIX="true"
 source $ZSH/oh-my-zsh.sh
@@ -208,6 +210,29 @@ prom-op() {
   pod=$(kubectl -n operators get pods | grep prometheus-operator | awk '{print $1}')
   kubectl -n operators logs -f $pod
 }
+kube-scale(){
+  if [[ "$1" == "-h" ]]; then
+    echo "Sets a keta paused-replicas annotation on scaled objects..."
+    echo ""
+    echo "Usage: $0 <scaledobject-name> <replica-count>"
+    echo -e "\nSet replica count to '-' to remove annotation"
+    return
+  fi
+
+  app="$1"
+  replicas="$2"
+  if [[ -z $replicas ]]; then
+    replicas="0"
+  fi
+  if [[ "$replicas" == "-" ]]; then
+    echo "kubectl annotate scaledobject $app autoscaling.keda.sh/paused-replicas-"
+    kubectl annotate scaledobject $app autoscaling.keda.sh/paused-replicas-
+  else
+    echo "kubectl annotate scaledobject $app autoscaling.keda.sh/paused-replicas="0" --overwrite"
+    kubectl annotate scaledobject $app autoscaling.keda.sh/paused-replicas="0" --overwrite
+  fi
+  echo "to remove, re-run with '-' for replicas"
+}
 
 # GCLOUD Stuff
 g-proj() {
@@ -228,6 +253,9 @@ export SKIP_FS_PS1=1
 export FS_SKIP_CD=1
 source /Users/samkirsch/.fsprofile
 eval "$(direnv hook zsh)"
+
+# CLAUDE CODE FS KEY
+source ~/creds/claude-code
 
 
 alias ssh="/Users/samkirsch/src/mn/projects/fullstory/tools/util/fsssh.sh"
@@ -279,3 +307,7 @@ sleep_with_countdown() {
      : $((secs--))
   done
 }
+
+# Needs to be at the bottom
+source $HOMEBREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+source $HOMEBREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
